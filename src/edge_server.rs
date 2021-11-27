@@ -20,10 +20,10 @@ pub struct EdgeServer {
 }
 
 impl EdgeServer {
-    pub fn new() -> io::Result<EdgeServer> {
+    pub fn new(serverString: &str) -> io::Result<EdgeServer> {
         let (handler, node_listener) = node::split::<()>();
 
-        let listen_addr = "127.0.0.1:5000";
+        let listen_addr = serverString;
         handler.network().listen(Transport::FramedTcp, listen_addr)?;
 
         println!("Discovery server running at {}", listen_addr);
@@ -39,7 +39,7 @@ impl EdgeServer {
         let node_listener = self.node_listener.take().unwrap();
         node_listener.for_each(move |event| match event.network() {
             NetEvent::Connected(_, _) => unreachable!(),
-            NetEvent::Accepted(_, _) => unreachable!(),    // All endpoints are being accepted This can be used for filtering denied endpoints
+            NetEvent::Accepted(_, _) => (),    // All endpoints are being accepted This can be used for filtering denied endpoints
             NetEvent::Message(endpoint, data_recieved) => {
                 let message: Message = bincode::deserialize(&data_recieved).unwrap();
                 match message {
@@ -54,7 +54,13 @@ impl EdgeServer {
                     },
                 }
             },
-            NetEvent::Disconnected(_) => todo!(),
+            NetEvent::Disconnected(endpoint) =>  {
+                let client = self.clients.iter().find(|(_, info)| info.endpoint == endpoint);
+                if let Some(client) = client {
+                    let name = client.0.to_string();
+                    self.unregister(&name);
+                }
+            },
         });
     }
 
