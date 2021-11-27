@@ -20,10 +20,10 @@ pub struct EdgeServer {
 }
 
 impl EdgeServer {
-    pub fn new(serverString: &str) -> io::Result<EdgeServer> {
+    pub fn new(server_string: &str) -> io::Result<EdgeServer> {
         let (handler, node_listener) = node::split::<()>();
 
-        let listen_addr = serverString;
+        let listen_addr = server_string;
         handler.network().listen(Transport::FramedTcp, listen_addr)?;
 
         println!("Discovery server running at {}", listen_addr);
